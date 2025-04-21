@@ -3,6 +3,8 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import config from './config';
 
+import authRoutes from './routes/auth';
+
 const app = express();
 const port = config.port;
 
@@ -17,6 +19,7 @@ mongoose
   .catch((err) => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.get('/', (req, res) => {
   res.send('Welcome to Quizzard Backend');
 });

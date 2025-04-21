@@ -6,57 +6,61 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 // REGISTER NEW USER
-export const register = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, email, password } = req.body;
 
     // VALIDATION AND HASHING
-    // Check for existing email
+    // Check email and username uniqueness
     if (await User.exists({ email })) {
-      return res.status(400).json({ error: 'Email already in use' });
+      res.status(400).json({ error: 'Email already in use' });
+      return;
     }
-    // Check for existing username
     if (await User.exists({ username })) {
-      return res.status(400).json({ error: 'Username already in use' });
+      res.status(400).json({ error: 'Username already in use' });
+      return;
     }
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // CREATE NEW USER
     const newUser = new User({ username, email, password: hashedPassword });
     await newUser.save();
-    return res.status(201).json({ message: 'User registered successfully' });
+    res.status(201).json({ message: 'User registered successfully' });
   } catch (err: unknown) {
-    // Checks if the error is a mongoose validation error
+    // Handle Mongoose validation errors
     if (err instanceof mongoose.Error.ValidationError) {
       // Get validation error messages (such as username rules defined in User.ts)
       const errorMessages = Object.values(err.errors).map((e) => e.message);
-      return res.status(400).json({ errors: errorMessages.join(', ') });
+      res.status(400).json({ errors: errorMessages.join(', ') });
+      return;
     }
     // General (non-mongoose) error handling (eg connection issues)
     console.error('Register error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
 // LOGIN USER
-export const login = async (req: Request, res: Response): Promise<Response> => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     // Find the user document store in MongoDB by email (and include password to compare)
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
     }
+
     // Compare the password with the hashed password in the database
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
     }
+
     // Generate JWT token
     const token = jwt.sign(
       { id: user._id, username: user.username },
@@ -64,9 +68,10 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
       { expiresIn: '1h' }
     );
     // Return the token to the client
-    return res.json({ token });
+
+    res.json({ token });
   } catch (err: unknown) {
     console.error('Login error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 };
