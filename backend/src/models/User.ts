@@ -1,4 +1,5 @@
 import { model, Schema, Document, Types } from 'mongoose';
+import bcrypt from 'bcrypt';
 
 export interface IUser extends Document {
   username: string;
@@ -7,6 +8,7 @@ export interface IUser extends Document {
   mana: number;
   mageMeter: number;
   friends: Types.ObjectId[];
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -60,5 +62,12 @@ const UserSchema = new Schema<IUser>(
   },
   { timestamps: true }
 );
+
+// Method to compare passwords
+UserSchema.methods.comparePassword = async function (
+  candidatePassword: string
+): Promise<boolean> {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 export default model<IUser>('User', UserSchema);
