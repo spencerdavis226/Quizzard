@@ -7,6 +7,7 @@ import config from './config';
 import authRoutes from './routes/auth';
 import quizRoutes from './routes/quiz';
 import userRoutes from './routes/user';
+import leaderboardRoutes from './routes/leaderboard';
 
 // Create an Express application
 const app = express();
@@ -26,6 +27,7 @@ mongoose
 app.use('/api/auth', authRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // Sanity check
 app.get('/', (req, res) => {
