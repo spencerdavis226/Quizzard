@@ -14,7 +14,7 @@ import {
 
 const router = Router();
 
-// Protected routes
+// User profile routes
 router.get('/me', authenticate, getProfile);
 router.put('/me', authenticate, updateProfile);
 router.delete('/me', authenticate, deleteAccount);

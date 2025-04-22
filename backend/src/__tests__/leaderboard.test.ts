@@ -73,7 +73,9 @@ beforeEach(async () => {
   }
 });
 
+// Tests for the leaderboard endpoints
 describe('GET /api/leaderboard/global', () => {
+  // Test fetching the global leaderboard sorted by mana
   it('should fetch the global leaderboard sorted by mana', async () => {
     const response = await request(app)
       .get('/api/leaderboard/global')
@@ -86,7 +88,9 @@ describe('GET /api/leaderboard/global', () => {
   });
 });
 
+// Tests for the friends leaderboard endpoint
 describe('GET /api/leaderboard/friends', () => {
+  // Test fetching the friends leaderboard sorted by mana
   it('should fetch the friends leaderboard sorted by mana', async () => {
     const response = await request(app)
       .get('/api/leaderboard/friends')

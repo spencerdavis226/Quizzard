@@ -40,6 +40,7 @@ const validToken = (userId: string) => jwt.sign({ id: userId }, jwtSecret);
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
+// Tests for the quiz endpoints
 describe('GET /api/quiz', () => {
   // Test successful fetch of 10 quiz questions
   it('should fetch 10 quiz questions', async () => {
@@ -128,7 +129,9 @@ describe('GET /api/quiz', () => {
   });
 });
 
+// Tests for submitting quiz scores
 describe('POST /api/quiz/submit', () => {
+  // Test successful quiz score submission
   it('should submit a quiz score and update user stats', async () => {
     // Create a test user
     const user = new User({
@@ -160,6 +163,7 @@ describe('POST /api/quiz/submit', () => {
     expect(response.body.user).toHaveProperty('mageMeter', 70);
   });
 
+  // Test invalid quiz data submission
   it('should return 400 for invalid quiz data', async () => {
     // Create a test user
     const user = new User({
@@ -187,24 +191,26 @@ describe('POST /api/quiz/submit', () => {
   });
 });
 
+// Tests for authentication protection on quiz endpoints
 describe('Quiz Auth Protection', () => {
+  // Test unauthenticated access to GET /api/quiz
   it('should return 401 if no token is provided for GET /api/quiz', async () => {
     const response = await request(app).get('/api/quiz');
     expect(response.status).toBe(401);
   });
 
+  // Test unauthenticated access to POST /api/quiz/submit
   it('should return 401 if no token is provided for POST /api/quiz/submit', async () => {
-    const response = await request(app)
-      .post('/api/quiz/submit')
-      .send({
-        category: 'General',
-        difficulty: 'easy',
-        questionCount: 5,
-        correctAnswers: 3,
-      });
+    const response = await request(app).post('/api/quiz/submit').send({
+      category: 'General',
+      difficulty: 'easy',
+      questionCount: 5,
+      correctAnswers: 3,
+    });
     expect(response.status).toBe(401);
   });
 
+  // Test invalid token access
   it('should return 401 if token is invalid', async () => {
     const response = await request(app)
       .get('/api/quiz')

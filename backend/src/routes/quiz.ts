@@ -7,10 +7,8 @@ import { authenticate } from '../middleware/authMiddleware';
 
 const router = Router();
 
-// Fetch 10 quiz questions
-router.get('/', authenticate, getQuizQuestions);
-
-// Submit quiz score
+// Quiz routes
+router.get('/', authenticate, getQuizQuestions); // Get quiz questions
 router.post('/submit', authenticate, submitQuizScore);
 
 export default router;

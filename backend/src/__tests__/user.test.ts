@@ -15,12 +15,14 @@ let mongoServer: MongoMemoryServer;
 let testUser: IUser;
 let testFriend: IUser;
 
+// Set up an in-memory MongoDB server and connect to it before running tests
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
 });
 
+// Clean up the in-memory MongoDB server and disconnect Mongoose after all tests
 afterAll(async () => {
   await mongoose.disconnect();
   await mongoServer.stop();
@@ -37,6 +39,8 @@ beforeEach(async () => {
   testFriend = createdTestFriend;
 });
 
+// Test to ensure unauthenticated users cannot access user profile
+// This checks if the API returns a 401 Unauthorized error when no token is provided
 describe('GET /api/user', () => {
   it('should return 401 if not authenticated', async () => {
     const response = await request(app).get('/api/user/me');
@@ -44,7 +48,9 @@ describe('GET /api/user', () => {
   });
 });
 
+// Tests for user-related API endpoints, such as retrieving and updating user profiles
 describe('User Endpoints', () => {
+  // Test to retrieve the user profile when authenticated
   it('should retrieve the user profile', async () => {
     const response = await request(app)
       .get('/api/user/me')
@@ -53,6 +59,7 @@ describe('User Endpoints', () => {
     expect(response.body).toHaveProperty('username', testUser.username);
   });
 
+  // Test to update the user profile with new data
   it('should update the user profile', async () => {
     const response = await request(app)
       .put('/api/user/me')
@@ -62,6 +69,7 @@ describe('User Endpoints', () => {
     expect(response.body).toHaveProperty('username', 'updateduser');
   });
 
+  // Test to add a friend to the user's friend list
   it('should add a friend', async () => {
     const response = await request(app)
       .post('/api/user/friends')
@@ -73,6 +81,7 @@ describe('User Endpoints', () => {
     );
   });
 
+  // Test to remove a friend from the user's friend list
   it('should remove a friend', async () => {
     // Add the friend first
     await request(app)
@@ -92,7 +101,9 @@ describe('User Endpoints', () => {
   });
 });
 
+// Tests for edge cases in friend management, such as adding or removing non-existent users
 describe('Friend management edge cases', () => {
+  // Test to ensure adding a non-existent user as a friend returns a 404 error
   it('should return 404 when adding a non-existent user as a friend', async () => {
     const response = await request(app)
       .post('/api/user/friends')
@@ -101,6 +112,7 @@ describe('Friend management edge cases', () => {
     expect(response.status).toBe(404);
   });
 
+  // Test to ensure removing a non-existent user as a friend returns a 404 error
   it('should return 404 when removing a non-existent user as a friend', async () => {
     const response = await request(app)
       .delete('/api/user/friends')
@@ -110,7 +122,9 @@ describe('Friend management edge cases', () => {
   });
 });
 
+// Tests for deleting the user account
 describe('DELETE /api/user/me', () => {
+  // Test to ensure the user account is deleted successfully
   it('should delete the user account', async () => {
     const response = await request(app)
       .delete('/api/user/me')
@@ -123,7 +137,9 @@ describe('DELETE /api/user/me', () => {
   });
 });
 
+// Tests for fetching the user's friends list
 describe('GET /api/user/friends', () => {
+  // Test to ensure the friends list is fetched correctly
   it('should fetch the friends list', async () => {
     // Add the friend to the user's friends list
     testUser.friends.push(testFriend._id);
@@ -138,7 +154,9 @@ describe('GET /api/user/friends', () => {
   });
 });
 
+// Tests for protecting user stats endpoints from unauthenticated access
 describe('User stats protection', () => {
+  // Test to ensure unauthenticated users cannot access the stats endpoint
   it('should return 401 if not authenticated for POST /api/user/stats', async () => {
     const response = await request(app)
       .post('/api/user/stats')

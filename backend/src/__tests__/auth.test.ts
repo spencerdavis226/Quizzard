@@ -4,22 +4,25 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../server';
 import { createTestUser } from './testUtils';
 
-// Mock database connection to prevent real DB calls during tests
+// Mock the database configuration to prevent actual database connections during tests
 jest.mock('../config/db', () => ({
   connectDB: jest.fn(),
   disconnectDB: jest.fn(),
 }));
 
+// Declare a variable to hold the in-memory MongoDB server instance
 let mongoServer: MongoMemoryServer;
 
+// Set up an in-memory MongoDB server and connect to it before running tests
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
 
-  await createTestUser();
+  await createTestUser(); // Create a test user in the in-memory database
 });
 
+// Clean up the in-memory MongoDB server and disconnect Mongoose after all tests
 afterAll(async () => {
   if (mongoServer) {
     await mongoose.disconnect();
@@ -27,6 +30,7 @@ afterAll(async () => {
   }
 });
 
+// Tests for the authentication endpoints (login and register)
 describe('POST /api/auth/login', () => {
   // Test valid login credentials
   it('should return 200 and a token for valid credentials', async () => {
@@ -48,6 +52,7 @@ describe('POST /api/auth/login', () => {
   });
 });
 
+// Tests for the registration endpoint
 describe('POST /api/auth/register', () => {
   // Test successful user registration
   it('should register a new user', async () => {
