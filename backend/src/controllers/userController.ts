@@ -193,8 +193,8 @@ export const addFriend = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const { username } = req.body;
   try {
+    const { username } = req.body;
     // Get user and friend objects
     const userId = validateUserId(req);
     const user = await User.findByIdOrThrow(userId);
@@ -219,7 +219,15 @@ export const addFriend = async (
     res.status(200).json({ message: 'Friend added successfully', user });
   } catch (error) {
     console.error('Error adding friend:', error);
-    res.status(500).json({ message: 'Error adding friend', error });
+    if (
+      error instanceof Error &&
+      (error.message === 'User not found' ||
+        error.message === 'Friend not found')
+    ) {
+      res.status(404).json({ message: 'Friend not found' });
+    } else {
+      res.status(500).json({ message: 'Error adding friend', error });
+    }
   }
 };
 
@@ -247,7 +255,15 @@ export const removeFriend = async (
     res.status(200).json({ message: 'Friend removed successfully', user });
   } catch (error) {
     console.error('Error removing friend:', error);
-    res.status(500).json({ message: 'Error removing friend', error });
+    if (
+      error instanceof Error &&
+      (error.message === 'User not found' ||
+        error.message === 'Friend not found')
+    ) {
+      res.status(404).json({ message: 'Friend not found' });
+    } else {
+      res.status(500).json({ message: 'Error removing friend', error });
+    }
   }
 };
 

@@ -42,7 +42,7 @@ const validateSortingParams = (
 
 // Build the aggregation pipeline
 const buildLeaderboardPipeline = (options: {
-  friendIds?: string[];
+  friendIds?: string[] | import('mongoose').Types.ObjectId[];
   sortBy: string;
   sortOrder: string;
   page?: number;
@@ -76,12 +76,6 @@ const buildLeaderboardPipeline = (options: {
       // Add a new field 'totalQuizzes' that counts the number of quizzes a user has taken
       $addFields: {
         totalQuizzes: { $size: '$scores' },
-      },
-    },
-    {
-      // Filter users who have taken at least 10 quizzes
-      $match: {
-        totalQuizzes: { $gte: 10 },
       },
     },
     {
@@ -142,7 +136,7 @@ export const getGlobalLeaderboard = async (
     const leaderboard = await User.aggregate(pipeline);
 
     // Send the leaderboard data as a JSON response
-    res.status(200).json(leaderboard);
+    res.status(200).json({ leaderboard });
   } catch (error) {
     // Handle errors and send a 500 status with an error message
     res
@@ -188,8 +182,8 @@ export const getFriendLeaderboard = async (
       return;
     }
 
-    // Convert ObjectId to string before passing to the pipeline
-    const friendIds = user.friends.map((friend) => friend._id.toString());
+    // Convert ObjectId to ObjectId before passing to the pipeline
+    const friendIds = [user._id, ...user.friends.map((friend) => friend._id)];
 
     // Build the aggregation pipeline
     const pipeline = buildLeaderboardPipeline({
@@ -204,7 +198,7 @@ export const getFriendLeaderboard = async (
     const leaderboard = await User.aggregate(pipeline);
 
     // Send the leaderboard data as a JSON response
-    res.status(200).json(leaderboard);
+    res.status(200).json({ leaderboard });
   } catch (error) {
     next(error);
   }

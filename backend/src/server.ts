@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose';
 import config from './config';
+import { connectDB } from './config/db';
 
 // Import routes
 import authRoutes from './routes/auth';
@@ -18,11 +18,8 @@ const port = config.port;
 app.use(cors());
 app.use(express.json());
 
-// Connect Mongoose to MongoDB
-mongoose
-  .connect(config.mongoURI)
-  .then(() => console.log(`Connecting to MongoDB at: ${config.mongoURI}`))
-  .catch((err) => console.error('MongoDB connection error:', err));
+// Connect to MongoDB
+connectDB();
 
 // Apply rate limiter to all routes
 app.use('/api/', apiLimiter);
@@ -39,6 +36,11 @@ app.get('/', (req, res) => {
 });
 
 // Binds and listens for connections on the specified host and port
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+  });
+}
+
+// Export the app instance for testing
+export default app;
