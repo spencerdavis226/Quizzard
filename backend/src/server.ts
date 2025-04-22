@@ -8,6 +8,7 @@ import authRoutes from './routes/auth';
 import quizRoutes from './routes/quiz';
 import userRoutes from './routes/user';
 import leaderboardRoutes from './routes/leaderboard';
+import apiLimiter from './middleware/rateLimiter';
 
 // Create an Express application
 const app = express();
@@ -22,6 +23,9 @@ mongoose
   .connect(config.mongoURI)
   .then(() => console.log(`Connecting to MongoDB at: ${config.mongoURI}`))
   .catch((err) => console.error('MongoDB connection error:', err));
+
+// Apply rate limiter to all routes
+app.use('/api/', apiLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
