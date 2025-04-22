@@ -1,6 +1,7 @@
 # Quizzard Backend API Documentation
 
 ## Overview
+
 The Quizzard backend provides a RESTful API for managing users, quizzes, leaderboards, and authentication. Below is the documentation for all available endpoints.
 
 ---
@@ -8,7 +9,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
 ## Authentication
 
 ### POST `/api/auth/register`
+
 **Description:** Register a new user.
+
 - **Request Body:**
   ```json
   {
@@ -28,7 +31,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
   - 400: Validation error or duplicate email/username
 
 ### POST `/api/auth/login`
+
 **Description:** Log in an existing user.
+
 - **Request Body:**
   ```json
   {
@@ -51,7 +56,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
 ## User Management
 
 ### GET `/api/user/me`
+
 **Description:** Fetch the profile of the authenticated user.
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Response:**
@@ -70,7 +77,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
   - 401: Unauthorized
 
 ### PUT `/api/user/me`
+
 **Description:** Update the profile of the authenticated user.
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Request Body:**
@@ -94,7 +103,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
   - 401: Unauthorized
 
 ### DELETE `/api/user/me`
+
 **Description:** Delete the authenticated user's account.
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Response:**
@@ -112,7 +123,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
 ## Quiz Management
 
 ### GET `/api/quiz`
+
 **Description:** Fetch 10 quiz questions.
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Query Parameters:**
@@ -134,7 +147,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
   - 401: Unauthorized
 
 ### POST `/api/quiz/submit`
+
 **Description:** Submit a quiz score and update user stats.
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Request Body:**
@@ -173,7 +188,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
 ## Leaderboard
 
 ### GET `/api/leaderboard/global`
+
 **Description:** Fetch the global leaderboard sorted by mana.
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Response:**
@@ -192,7 +209,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
   - 401: Unauthorized
 
 ### GET `/api/leaderboard/friends`
+
 **Description:** Fetch the friends leaderboard sorted by mana.
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Response:**
@@ -215,7 +234,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
 ## Friend Management
 
 ### POST `/api/user/friends`
+
 **Description:** Add a friend by username.
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Request Body:**
@@ -240,7 +261,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
   - 401: Unauthorized
 
 ### DELETE `/api/user/friends`
+
 **Description:** Remove a friend by username.
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Request Body:**
@@ -269,7 +292,9 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
 ## User Stats
 
 ### POST `/api/user/stats`
+
 **Description:** Update user stats (mana and mageMeter).
+
 - **Headers:**
   - Authorization: `Bearer <token>`
 - **Request Body:**
@@ -296,10 +321,12 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
 ---
 
 ## Notes
+
 - All endpoints requiring authentication must include a valid JWT in the `Authorization` header.
 - Ensure proper validation of request bodies to avoid errors.
 
 ---
 
 ## Running the Backend
+
 Refer to the main `README.md` for setup and running instructions.
