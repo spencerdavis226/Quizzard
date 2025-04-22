@@ -2,13 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../config';
 
-// Define the interface for the JWT payload
+// JWT payload interface
 interface JwtPayload {
   id: string;
   username: string;
 }
 
 // Extend the Request interface to include the user property
+// (This allows us to access the user id and username in the request object)
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
@@ -16,6 +17,7 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+// Middleware function to authenticate the user
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,
@@ -41,14 +43,17 @@ export const authenticate = (
 
     next();
   } catch (error) {
+    // Token expired
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({ message: 'Token expired' });
       return;
     }
+    // Invalid token
     if (error instanceof jwt.JsonWebTokenError) {
       res.status(401).json({ message: 'Invalid token' });
       return;
     }
+    // Other errors
     console.error('Authentication error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }

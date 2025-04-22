@@ -10,7 +10,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, email, password } = req.body;
 
-    // VALIDATION AND HASHING
     // Check email and username uniqueness
     if (await User.exists({ email })) {
       res.status(400).json({ error: 'Email already in use' });
@@ -21,11 +20,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // CREATE NEW USER
-    const newUser = new User({ username, email, password: hashedPassword });
+    // Create a new user (let the model handle password hashing)
+    const newUser = new User({ username, email, password });
     await newUser.save();
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err: unknown) {
@@ -67,8 +63,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       process.env.JWT_SECRET as string,
       { expiresIn: '1h' }
     );
-    // Return the token to the client
 
+    // Return the token to the client
     res.json({ token });
   } catch (err: unknown) {
     console.error('Login error:', err);

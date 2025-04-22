@@ -3,8 +3,12 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import config from './config';
 
+// Import routes
 import authRoutes from './routes/auth';
+import quizRoutes from './routes/quiz';
+import userRoutes from './routes/user';
 
+// Create an Express application
 const app = express();
 const port = config.port;
 
@@ -20,6 +24,10 @@ mongoose
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/quiz', quizRoutes);
+app.use('/api/user', userRoutes);
+
+// Sanity check
 app.get('/', (req, res) => {
   res.send('Welcome to Quizzard Backend');
 });

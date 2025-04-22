@@ -1,35 +1,30 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
+import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
-// Define a custom request type that includes the `user` property
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    username: string;
-  };
-}
+// HELPER FUNCTION
+// (Checks if userId exists in req, and that it's a string)
+const validateUserId = (req: AuthenticatedRequest): string => {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new Error('User ID is required');
+  }
+  return userId;
+};
 
-// Fetch the current user's profile
+// FETCH THE CURRENT USER'S PROFILE
 export const getProfile = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
-    // Get the user ID from the request object (set by authMiddleware)
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-
-    // Find the user by ID using 'userId' gathered from the request
+    const userId = validateUserId(req);
+    // Find the user in the database
     const user = await User.findById(userId).select('-password');
     if (!user) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
-
-    // Return the user profile without the password
     res.json(user);
   } catch (err) {
     console.error('Error fetching profile:', err);
@@ -37,42 +32,38 @@ export const getProfile = async (
   }
 };
 
-// Update the current user's username and email
+// UPDATE THE CURRENT USER'S PROFILE
 export const updateProfile = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-
-    // Extract fields to update from the request body
+    const userId = validateUserId(req);
     const { username, email } = req.body;
 
+    // Validate the input
     if (!username && !email) {
       res.status(400).json({ error: 'No valid fields to update' });
       return;
     }
 
-    // Prepare the updates object
+    // Define updates
+    // Partial allows us to update only some fields (username and/or email)
     const updates: Partial<{ username: string; email: string }> = {};
     if (username) updates.username = username;
     if (email) updates.email = email;
 
-    // Update the user in the database
+    // Check if the username or email already exists
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
       new: true,
       runValidators: true,
     }).select('-password');
 
+    // If the user is not found, return a 404 error
     if (!updatedUser) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
-
     res.json(updatedUser);
   } catch (err) {
     console.error('Error updating profile:', err);
@@ -80,21 +71,16 @@ export const updateProfile = async (
   }
 };
 
-// Change the current user's password
+// CHANGE THE CURRENT USER'S PASSWORD
 export const changePassword = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-
-    // Extract current and new passwords from the request body
+    const userId = validateUserId(req);
     const { currentPassword, newPassword } = req.body;
 
+    // Validate that both passwords are provided
     if (!currentPassword || !newPassword) {
       res
         .status(400)
@@ -109,17 +95,16 @@ export const changePassword = async (
       return;
     }
 
-    // Verify the current password
+    // Check if the current password is correct
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       res.status(400).json({ error: 'Current password is incorrect' });
       return;
     }
 
-    // Update the password and save the user
+    // Update the password
     user.password = newPassword;
-    await user.save();
-
+    await user.save(); // This will trigger the pre-save hook (in User.ts) to hash the new password
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
     console.error('Error changing password:', err);
@@ -127,26 +112,23 @@ export const changePassword = async (
   }
 };
 
-// Delete the current user's account
+// DELETE THE CURRENT USER'S ACCOUNT
 export const deleteAccount = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
-    // Get the user ID from the request object (set by authMiddleware)
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
+    const userId = validateUserId(req);
 
-    // Find the user by ID and delete the account
+    // Find and delete the user in the database
+    // (Mongoose will also remove the user from the friends list of other users)
     const deletedUser = await User.findByIdAndDelete(userId);
+
+    // If the user is not found, return a 404 error
     if (!deletedUser) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
-
     res.json({ message: 'Account deleted successfully' });
   } catch (err) {
     console.error('Error deleting account:', err);
@@ -154,14 +136,15 @@ export const deleteAccount = async (
   }
 };
 
-// Update mana and mageMeter for a user
+// UPDATE USER STATS (MANA AND MAGE METER)
 export const updateUserStats = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const { userId, mana, mageMeter } = req.body;
-
   try {
+    const userId = validateUserId(req);
+    const { mana, mageMeter } = req.body;
+
     // Find the user in the database
     const user = await User.findById(userId);
     if (!user) {
@@ -170,10 +153,11 @@ export const updateUserStats = async (
     }
 
     // Update the user's stats
-    user.mana = mana;
-    user.mageMeter = mageMeter;
+    if (mana !== undefined) user.mana = mana;
+    if (mageMeter !== undefined) user.mageMeter = mageMeter;
     await user.save();
 
+    // Respond with a success message and the updated user
     res.status(200).json({ message: 'User stats updated successfully', user });
   } catch (error) {
     console.error('Error updating user stats:', error);
@@ -181,14 +165,14 @@ export const updateUserStats = async (
   }
 };
 
-// Fetch mana and mageMeter for a user
+// FETCH USER STATS (MANA AND MAGE METER)
 export const getUserStats = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const { userId } = req.params;
-
   try {
+    const userId = validateUserId(req);
+
     // Find the user in the database
     const user = await User.findById(userId);
     if (!user) {
@@ -201,5 +185,91 @@ export const getUserStats = async (
   } catch (error) {
     console.error('Error fetching user stats:', error);
     res.status(500).json({ message: 'Error fetching user stats', error });
+  }
+};
+
+// ADD A FRIEND
+export const addFriend = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  const { username } = req.body;
+  try {
+    // Get user and friend objects
+    const userId = validateUserId(req);
+    const user = await User.findByIdOrThrow(userId);
+    const friend = await User.findByUsernameOrThrow(username);
+
+    // Check if friend is yourself
+    if (friend._id.equals(user._id)) {
+      res.status(400).json({ message: 'You cannot add yourself as a friend' });
+      return;
+    }
+
+    // Check if friend already exists
+    if (user.friends.includes(friend._id)) {
+      res.status(400).json({ message: 'Already friends' });
+      return;
+    }
+
+    // Add friend to user's friends list
+    // (Mongoose will automatically handle the ObjectId reference)
+    user.friends.push(friend._id);
+    await user.save();
+    res.status(200).json({ message: 'Friend added successfully', user });
+  } catch (error) {
+    console.error('Error adding friend:', error);
+    res.status(500).json({ message: 'Error adding friend', error });
+  }
+};
+
+// REMOVE A FRIEND
+export const removeFriend = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  const { username } = req.body;
+  try {
+    // Get user and friend objects
+    const userId = validateUserId(req);
+    const user = await User.findByIdOrThrow(userId);
+    const friend = await User.findByUsernameOrThrow(username);
+
+    // Check if friend exists in user's friends list
+    if (!user.friends.includes(friend._id)) {
+      res.status(400).json({ message: 'Not friends' });
+      return;
+    }
+
+    // Remove friend from user's friends list
+    user.friends = user.friends.filter((f) => !f.equals(friend._id));
+    await user.save();
+    res.status(200).json({ message: 'Friend removed successfully', user });
+  } catch (error) {
+    console.error('Error removing friend:', error);
+    res.status(500).json({ message: 'Error removing friend', error });
+  }
+};
+
+// GET FRIENDS LIST
+export const getFriendsList = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = validateUserId(req);
+
+    // Find the user in the database and populate the friends list
+    const user = await User.findById(userId).populate('friends', '-password');
+
+    // If the user is not found, return a 404 error
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.status(200).json({ friends: user.friends });
+  } catch (error) {
+    console.error('Error fetching friends list:', error);
+    res.status(500).json({ message: 'Error fetching friends list', error });
   }
 };
