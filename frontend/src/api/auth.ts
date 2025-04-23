@@ -1,14 +1,15 @@
-//USER LOGIN
+// USER LOGIN
 export async function login(email: string, password: string) {
   const response = await fetch('/api/auth/login', {
     method: 'POST',
+    // Explicitly set the header so the server expects JSON
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ email, password }),
   });
 
-  // Check if the response is ok (status in the range 200-299)
+  // Check if the response status is not in the range 200-299 (indicating an error)
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error || 'Failed to login');
@@ -21,12 +22,14 @@ export async function login(email: string, password: string) {
 export async function register(email: string, password: string) {
   const response = await fetch('/api/auth/register', {
     method: 'POST',
+    // Explicitly set the header so the server expects JSON
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ email, password }),
   });
 
+  // Check if the response status is not in the range 200-299 (indicating an error)
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error || 'Failed to register');
