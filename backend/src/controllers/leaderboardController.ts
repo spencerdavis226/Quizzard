@@ -19,6 +19,7 @@ const validateSortingParams = (
   const validSortFields = ['mana', 'mageMeter'];
   const validSortOrders = ['asc', 'desc'];
 
+  // Check if sortBy and sortOrder are valid
   if (!validSortFields.includes(sortBy)) {
     return {
       valid: false,
@@ -182,7 +183,7 @@ export const getFriendLeaderboard = async (
       return;
     }
 
-    // Convert ObjectId to ObjectId before passing to the pipeline
+    // Convert friend values to ObjectId before passing to the pipeline
     const friendIds = [user._id, ...user.friends.map((friend) => friend._id)];
 
     // Build the aggregation pipeline

@@ -189,17 +189,20 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
 
 ### GET `/api/leaderboard/global`
 
-**Description:** Fetch the global leaderboard sorted by mana.
+**Description:** Fetch the global leaderboard sorted by `mana` or `mageMeter`.
 
 - **Headers:**
   - Authorization: `Bearer <token>`
+- **Query Parameters:**
+  - `sortBy` (optional): `mana` or `mageMeter` (default: `mana`)
 - **Response:**
   ```json
   {
     "leaderboard": [
       {
         "username": "string",
-        "mana": "number"
+        "mana": "number",
+        "mageMeter": "number"
       }
     ]
   }
@@ -210,17 +213,20 @@ The Quizzard backend provides a RESTful API for managing users, quizzes, leaderb
 
 ### GET `/api/leaderboard/friends`
 
-**Description:** Fetch the friends leaderboard sorted by mana.
+**Description:** Fetch the friends leaderboard sorted by `mana` or `mageMeter`.
 
 - **Headers:**
   - Authorization: `Bearer <token>`
+- **Query Parameters:**
+  - `sortBy` (optional): `mana` or `mageMeter` (default: `mana`)
 - **Response:**
   ```json
   {
     "leaderboard": [
       {
         "username": "string",
-        "mana": "number"
+        "mana": "number",
+        "mageMeter": "number"
       }
     ]
   }
