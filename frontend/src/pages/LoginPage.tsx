@@ -1,31 +1,35 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import useAuth from '../hooks/useAuth';
 import { login } from '../api/auth';
 
-function HomePage() {
-  const { login: setAuthToken } = useAuth();
-  const navigate = useNavigate();
+function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
     try {
-      const { token } = await login(email, password);
-      setAuthToken(token);
-      navigate('/profile'); // Redirect to profile on success
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : 'Login failed. Please try again.'
-      );
+      // Call the login function from the API
+      const data = await login(email, password); // Expected to return { token: string }
+      localStorage.setItem('token', data.token);
+      navigate('/dashboard');
+    } catch (err) {
+      const errorMessage =
+        (err as { message?: string })?.message || 'Login failed';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <div style={{ fontSize: '100px', lineHeight: '1' }}>🧙</div>
+      <div style={{ fontSize: '100px', lineHeight: '1' }}>🧙‍♂️</div>
       <h1>Welcome to Quizzard!</h1>
       <p>The ultimate quiz experience awaits you.</p>
 
@@ -37,6 +41,7 @@ function HomePage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{ padding: '10px', margin: '5px', width: '200px' }}
+            required
           />
         </div>
         <div>
@@ -46,13 +51,15 @@ function HomePage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={{ padding: '10px', margin: '5px', width: '200px' }}
+            required
           />
         </div>
         <button
           type="submit"
           style={{ padding: '10px 20px', marginTop: '10px' }}
+          disabled={loading}
         >
-          Login
+          {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
 
@@ -65,4 +72,4 @@ function HomePage() {
   );
 }
 
-export default HomePage;
+export default LoginPage;
