@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom';
-import { getToken } from '../api/auth';
+import { getToken } from '../utils/token';
 
 interface RequireAuthProps {
   children: React.ReactNode;

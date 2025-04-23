@@ -39,8 +39,3 @@ export async function register(
 
   return response.json(); // Expected to return { token: string }
 }
-
-// Get the JWT token from localStorage
-export function getToken() {
-  return localStorage.getItem('token');
-}
