@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import RequireAuth from './components/RequireAuth';
+
+// Import pages
+import RegisterPage from './pages/RegisterPage';
+import QuizSetupPage from './pages/QuizSetupPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
-import RequireAuth from './components/RequireAuth';
-import RegisterPage from './pages/RegisterPage';
 
 function App() {
   return (
@@ -15,6 +18,14 @@ function App() {
           element={
             <RequireAuth>
               <DashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/quiz-setup"
+          element={
+            <RequireAuth>
+              <QuizSetupPage />
             </RequireAuth>
           }
         />

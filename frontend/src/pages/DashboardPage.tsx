@@ -85,7 +85,7 @@ function DashboardPage() {
           }}
         >
           <h2>⚡ Mage Meter</h2>
-          <p>{stats.mageMeter}%</p>
+          <p>{Math.round(stats.mageMeter)}%</p>
         </div>
       </div>
 
@@ -99,7 +99,7 @@ function DashboardPage() {
         }}
       >
         <Link
-          to="/quiz"
+          to="/quiz-setup"
           style={{
             padding: '10px 20px',
             border: '1px solid #007BFF',
