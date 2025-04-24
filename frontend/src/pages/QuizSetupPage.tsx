@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './QuizSetupPage.css'; // Import the CSS file for styling
 
 interface Category {
   id: number;
@@ -30,14 +31,14 @@ function QuizSetupPage() {
   };
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
+    <div className="quiz-setup-container">
       <h1>Quiz Setup</h1>
       <form
+        className="quiz-setup-form"
         onSubmit={(e) => {
           e.preventDefault();
           handleStartQuiz();
         }}
-        style={{ marginTop: '20px' }}
       >
         <div>
           <label>
@@ -45,7 +46,6 @@ function QuizSetupPage() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              style={{ padding: '10px', margin: '5px', width: '200px' }}
             >
               <option value="">Random Category</option>
               {categories.map((cat) => (
@@ -62,7 +62,6 @@ function QuizSetupPage() {
             <select
               value={difficulty}
               onChange={(e) => setDifficulty(e.target.value)}
-              style={{ padding: '10px', margin: '5px', width: '200px' }}
             >
               <option value="">Any (Mixed)</option>
               <option value="easy">Easy</option>
@@ -71,12 +70,7 @@ function QuizSetupPage() {
             </select>
           </label>
         </div>
-        <button
-          type="submit"
-          style={{ padding: '10px 20px', marginTop: '10px' }}
-        >
-          Start Quiz
-        </button>
+        <button type="submit">Start Quiz</button>
       </form>
     </div>
   );
