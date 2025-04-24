@@ -17,17 +17,56 @@ export const getQuizQuestions = async (
     }${difficulty ? `&difficulty=${difficulty}` : ''}`;
 
     // Fetch questions from Open Trivia DB
-    const response = await axios.get(url);
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (compatible; Quizzard/1.0; +https://github.com/your-repo)',
+        Accept: 'application/json',
+      },
+    });
 
-    if (response.data.response_code !== 0) {
-      res.status(400).json({ error: 'Failed to fetch questions' });
+    // Handle Open Trivia DB rate limiting (HTTP 429)
+    if (response.status === 429) {
+      res.status(429).json({
+        error:
+          'You are being rate-limited by the trivia API. Please wait and try again later.',
+      });
+      return;
+    }
+
+    // Handle Open Trivia DB session exhausted (response_code 5)
+    if (response.data.response_code === 5) {
+      res.status(400).json({
+        error:
+          'No more questions available for this selection. Try a different category or difficulty, or wait before trying again.',
+      });
+      return;
+    }
+
+    if (response.data.response_code !== 0 || !response.data.results.length) {
+      res.status(400).json({
+        error:
+          'No questions found for this selection. Try a different category or difficulty.',
+      });
       return;
     }
 
     res.status(200).json(response.data.results);
   } catch (error) {
-    console.error('Error fetching quiz questions:', error);
-    res.status(500).json({ error: 'Server error' });
+    if (axios.isAxiosError(error)) {
+      console.error(
+        'Axios error:',
+        error.message,
+        error.response?.data,
+        error.code,
+        error.config
+      );
+    } else {
+      console.error('Unknown error:', error);
+    }
+    res
+      .status(502)
+      .json({ error: 'Failed to fetch questions from external API.' });
   }
 };
 
@@ -45,7 +84,10 @@ export const submitQuizScore = async (
       !category ||
       !difficulty ||
       !questionCount ||
-      typeof correctAnswers !== 'number'
+      typeof correctAnswers !== 'number' ||
+      questionCount < 1 ||
+      correctAnswers < 0 ||
+      correctAnswers > questionCount
     ) {
       res.status(400).json({ error: 'Invalid quiz data' });
       return;

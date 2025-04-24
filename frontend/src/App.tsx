@@ -6,6 +6,8 @@ import RegisterPage from './pages/RegisterPage';
 import QuizSetupPage from './pages/QuizSetupPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import QuizPage from './pages/QuizPage';
+import QuizResultsPage from './pages/QuizResultsPage';
 
 function App() {
   return (
@@ -26,6 +28,22 @@ function App() {
           element={
             <RequireAuth>
               <QuizSetupPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/quiz"
+          element={
+            <RequireAuth>
+              <QuizPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/quiz-results"
+          element={
+            <RequireAuth>
+              <QuizResultsPage />
             </RequireAuth>
           }
         />
