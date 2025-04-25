@@ -7,6 +7,15 @@ interface UserStats {
   mageMeter: number;
 }
 
+function getPerformanceGrade(percentage: number): string {
+  if (percentage >= 90) return 'Archmage';
+  if (percentage >= 80) return 'Master Wizard';
+  if (percentage >= 70) return 'Adept Spellcaster';
+  if (percentage >= 60) return 'Apprentice Mage';
+  if (percentage >= 50) return 'Magic Novice';
+  return 'Beginner Spellcaster';
+}
+
 function DashboardPage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [error, setError] = useState('');
@@ -48,9 +57,29 @@ function DashboardPage() {
   if (!stats)
     return <div style={{ textAlign: 'center', marginTop: 50 }}>Loading...</div>;
 
+  const performanceGrade = getPerformanceGrade(stats.mageMeter);
+
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <h1 style={{ textAlign: 'center' }}>Dashboard</h1>
+
+      <div
+        style={{
+          padding: '15px',
+          marginBottom: '20px',
+          backgroundColor: '#f0f8ff',
+          borderRadius: '8px',
+          textAlign: 'center',
+          border: '2px solid #007BFF',
+        }}
+      >
+        <h2 style={{ margin: '0 0 10px 0', color: '#007BFF' }}>
+          Current Title: {performanceGrade}
+        </h2>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Continue taking quizzes to improve your magical rank!
+        </div>
+      </div>
 
       <div
         style={{
@@ -58,7 +87,6 @@ function DashboardPage() {
           flexWrap: 'wrap',
           gap: '20px',
           justifyContent: 'center',
-          marginTop: '20px',
         }}
       >
         <div
@@ -99,7 +127,7 @@ function DashboardPage() {
         }}
       >
         <Link
-          to="/quiz-setup"
+          to="/quiz"
           style={{
             padding: '10px 20px',
             border: '1px solid #007BFF',

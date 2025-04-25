@@ -3,7 +3,6 @@ import RequireAuth from './components/RequireAuth';
 
 // Import pages
 import RegisterPage from './pages/RegisterPage';
-import QuizSetupPage from './pages/QuizSetupPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import QuizPage from './pages/QuizPage';
@@ -20,14 +19,6 @@ function App() {
           element={
             <RequireAuth>
               <DashboardPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/quiz-setup"
-          element={
-            <RequireAuth>
-              <QuizSetupPage />
             </RequireAuth>
           }
         />
