@@ -1,11 +1,4 @@
-// QuizPage.tsx - A timed quiz interface that fetches questions from the API
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken } from '../utils/token';
 import './QuizPage.css';
