@@ -125,7 +125,10 @@ describe('GET /api/quiz', () => {
       .set('Authorization', `Bearer ${validToken('testUserId')}`);
 
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty('error', 'Failed to fetch questions');
+    expect(response.body).toHaveProperty(
+      'error',
+      'No questions found for this selection. Try a different category or difficulty.'
+    );
   });
 });
 

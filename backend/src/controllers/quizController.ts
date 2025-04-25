@@ -17,28 +17,13 @@ export const getQuizQuestions = async (
     }${difficulty ? `&difficulty=${difficulty}` : ''}`;
 
     // Fetch questions from Open Trivia DB
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (compatible; Quizzard/1.0; +https://github.com/your-repo)',
-        Accept: 'application/json',
-      },
-    });
-
-    // Handle Open Trivia DB rate limiting (HTTP 429)
-    if (response.status === 429) {
-      res.status(429).json({
-        error:
-          'You are being rate-limited by the trivia API. Please wait and try again later.',
-      });
-      return;
-    }
+    const response = await axios.get(url);
 
     // Handle Open Trivia DB session exhausted (response_code 5)
     if (response.data.response_code === 5) {
       res.status(400).json({
         error:
-          'No more questions available for this selection. Try a different category or difficulty, or wait before trying again.',
+          'No more questions available for this selection. Try a different category or difficulty.',
       });
       return;
     }
