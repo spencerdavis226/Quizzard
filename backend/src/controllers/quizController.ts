@@ -3,7 +3,30 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
-// Fetch 10 quiz questions from Open Trivia DB
+// Define interfaces for Open Trivia DB responses
+interface OpenTriviaQuestion {
+  category: string;
+  type: string;
+  difficulty: string;
+  question: string;
+  correct_answer: string;
+  incorrect_answers: string[];
+}
+
+interface OpenTriviaResponse {
+  response_code: number;
+  results: OpenTriviaQuestion[];
+}
+
+// Define interface for quiz score submission
+interface QuizScoreSubmission {
+  category: string;
+  difficulty: string;
+  questionCount: number;
+  correctAnswers: number;
+}
+
+// Fetch 10 quiz questions from Open Trivia DB based on category and difficulty
 export const getQuizQuestions = async (
   req: Request,
   res: Response
@@ -11,15 +34,15 @@ export const getQuizQuestions = async (
   try {
     const { category, difficulty } = req.query;
 
-    // Build the Open Trivia DB API URL
+    // Build the Open Trivia DB API URL with optional filters
     const url = `https://opentdb.com/api.php?amount=10&type=multiple${
       category ? `&category=${category}` : ''
     }${difficulty ? `&difficulty=${difficulty}` : ''}`;
 
     // Fetch questions from Open Trivia DB
-    const response = await axios.get(url);
+    const response = await axios.get<OpenTriviaResponse>(url);
 
-    // Handle Open Trivia DB session exhausted (response_code 5)
+    // Handle session exhausted case (response_code 5)
     if (response.data.response_code === 5) {
       res.status(400).json({
         error:
@@ -28,6 +51,7 @@ export const getQuizQuestions = async (
       return;
     }
 
+    // Handle no results found or other API errors
     if (response.data.response_code !== 0 || !response.data.results.length) {
       res.status(400).json({
         error:
@@ -36,22 +60,25 @@ export const getQuizQuestions = async (
       return;
     }
 
+    // Return the questions if found
     res.status(200).json(response.data.results);
   } catch (error) {
+    // Log detailed error for debugging
     if (axios.isAxiosError(error)) {
       console.error(
-        'Axios error:',
+        'API error:',
         error.message,
         error.response?.data,
-        error.code,
-        error.config
+        error.code
       );
     } else {
       console.error('Unknown error:', error);
     }
-    res
-      .status(502)
-      .json({ error: 'Failed to fetch questions from external API.' });
+
+    // Return a user-friendly error message
+    res.status(502).json({
+      error: 'Failed to fetch questions from external API.',
+    });
   }
 };
 
@@ -62,9 +89,19 @@ export const submitQuizScore = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const { category, difficulty, questionCount, correctAnswers } = req.body;
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
 
-    // Basic validation
+    const {
+      category,
+      difficulty,
+      questionCount,
+      correctAnswers,
+    }: QuizScoreSubmission = req.body;
+
+    // Validate required fields and reasonable values
     if (
       !category ||
       !difficulty ||
@@ -78,13 +115,14 @@ export const submitQuizScore = async (
       return;
     }
 
-    // Update user stats
+    // Find user and update stats
     const user = await User.findById(userId);
     if (!user) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
 
+    // Update user's mana (total correct answers) and mageMeter (accuracy %)
     user.mana += correctAnswers;
     user.mageMeter = Math.min(
       100,
@@ -92,7 +130,7 @@ export const submitQuizScore = async (
     );
     await user.save();
 
-    // Return the score for splash screen use
+    // Return updated stats and score summary for the UI
     res.status(200).json({
       message: 'Score submitted successfully',
       user: { mana: user.mana, mageMeter: user.mageMeter },
@@ -104,7 +142,8 @@ export const submitQuizScore = async (
         percentage: Math.round((correctAnswers / questionCount) * 100),
       },
     });
-  } catch (err) {
+  } catch (error) {
+    console.error('Error submitting score:', error);
     res.status(500).json({ error: 'Server error' });
   }
 };

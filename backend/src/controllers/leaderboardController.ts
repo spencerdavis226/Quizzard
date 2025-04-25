@@ -1,5 +1,5 @@
 import User from '../models/User';
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { PipelineStage } from 'mongoose';
 
@@ -11,7 +11,16 @@ interface LeaderboardQuery {
   limit?: number;
 }
 
-// Validate sorting parameters
+// Leaderboard pipeline options interface
+interface LeaderboardPipelineOptions {
+  friendIds?: string[] | import('mongoose').Types.ObjectId[];
+  sortBy: string;
+  sortOrder: string;
+  page: number;
+  limit: number;
+}
+
+// Validate leaderboard sorting parameters
 const validateSortingParams = (
   sortBy: string,
   sortOrder: string
@@ -19,11 +28,10 @@ const validateSortingParams = (
   const validSortFields = ['mana', 'mageMeter'];
   const validSortOrders = ['asc', 'desc'];
 
-  // Check if sortBy and sortOrder are valid
   if (!validSortFields.includes(sortBy)) {
     return {
       valid: false,
-      message: `Invalid sortBy field. Valid options are: ${validSortFields.join(
+      message: `Invalid sortBy field. Valid options: ${validSortFields.join(
         ', '
       )}`,
     };
@@ -32,7 +40,7 @@ const validateSortingParams = (
   if (!validSortOrders.includes(sortOrder)) {
     return {
       valid: false,
-      message: `Invalid sortOrder. Valid options are: ${validSortOrders.join(
+      message: `Invalid sortOrder. Valid options: ${validSortOrders.join(
         ', '
       )}`,
     };
@@ -41,31 +49,25 @@ const validateSortingParams = (
   return { valid: true };
 };
 
-// Build the aggregation pipeline
-const buildLeaderboardPipeline = (options: {
-  friendIds?: string[] | import('mongoose').Types.ObjectId[];
-  sortBy: string;
-  sortOrder: string;
-  page?: number;
-  limit?: number;
-}): PipelineStage[] => {
-  const { friendIds, sortBy, sortOrder, page = 1, limit = 10 } = options;
+// Build the MongoDB aggregation pipeline for leaderboards
+const buildLeaderboardPipeline = (
+  options: LeaderboardPipelineOptions
+): PipelineStage[] => {
+  const { friendIds, sortBy, sortOrder, page, limit } = options;
   const sortDirection = sortOrder === 'desc' ? -1 : 1;
-
   const pipeline: PipelineStage[] = [];
 
-  if (friendIds) {
+  // Filter by friends if provided
+  if (friendIds && friendIds.length > 0) {
     pipeline.push({
-      // Match only the friends of the user
-      $match: {
-        _id: { $in: friendIds },
-      },
+      $match: { _id: { $in: friendIds } },
     });
   }
 
+  // Common pipeline stages
   pipeline.push(
+    // Join with scores collection to get quiz data
     {
-      // Join the 'scores' collection with the 'users' collection based on user ID
       $lookup: {
         from: 'scores',
         localField: '_id',
@@ -73,26 +75,15 @@ const buildLeaderboardPipeline = (options: {
         as: 'scores',
       },
     },
+    // Add totalQuizzes field
+    { $addFields: { totalQuizzes: { $size: '$scores' } } },
+    // Sort by specified field
+    { $sort: { [sortBy]: sortDirection } },
+    // Pagination
+    { $skip: (page - 1) * limit },
+    { $limit: limit },
+    // Project only needed fields
     {
-      // Add a new field 'totalQuizzes' that counts the number of quizzes a user has taken
-      $addFields: {
-        totalQuizzes: { $size: '$scores' },
-      },
-    },
-    {
-      // Sort dynamically based on the sortBy and sortOrder parameters
-      $sort: { [sortBy]: sortDirection },
-    },
-    {
-      // Skip documents for pagination
-      $skip: (page - 1) * limit,
-    },
-    {
-      // Limit the number of documents for pagination
-      $limit: limit,
-    },
-    {
-      // Select specific fields to include in the output
       $project: {
         username: 1,
         mana: 1,
@@ -105,102 +96,92 @@ const buildLeaderboardPipeline = (options: {
   return pipeline;
 };
 
-// GET GLOBAL LEADERBOARD
+// Get global leaderboard (accessible to all users)
 export const getGlobalLeaderboard = async (
-  req: Request<{}, {}, {}, LeaderboardQuery>,
+  req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const {
-      sortBy = 'mana',
-      sortOrder = 'desc',
-      page = 1,
-      limit = 10,
-    } = req.query;
+    // Get and validate query parameters with defaults
+    const sortBy = (req.query.sortBy || 'mana') as string;
+    const sortOrder = (req.query.sortOrder || 'desc') as string;
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
 
-    // Validate sorting parameters
     const validation = validateSortingParams(sortBy, sortOrder);
+
     if (!validation.valid) {
-      res.status(400).json({ message: validation.message });
+      res.status(400).json({ error: validation.message });
       return;
     }
 
-    // Build the aggregation pipeline
+    // Build and execute pipeline
     const pipeline = buildLeaderboardPipeline({
       sortBy,
       sortOrder,
-      page: Number(page),
-      limit: Number(limit),
+      page,
+      limit,
     });
 
-    // Execute the aggregation pipeline
     const leaderboard = await User.aggregate(pipeline);
-
-    // Send the leaderboard data as a JSON response
     res.status(200).json({ leaderboard });
   } catch (error) {
-    // Handle errors and send a 500 status with an error message
-    res
-      .status(500)
-      .json({ message: 'Error fetching global leaderboard', error });
+    console.error('Global leaderboard error:', error);
+    res.status(500).json({
+      error: 'Error fetching global leaderboard',
+    });
   }
 };
 
-// GET FRIEND LEADERBOARD
+// Get friends leaderboard (requires authentication)
 export const getFriendLeaderboard = async (
   req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> => {
   try {
-    if (!req.user) {
-      res.status(401).json({ message: 'Unauthorized' });
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
       return;
     }
 
-    const {
-      sortBy = 'mana',
-      sortOrder = 'desc',
-      page = 1,
-      limit = 10,
-    } = req.query;
+    // Get and validate query parameters with defaults
+    const sortBy = (req.query.sortBy as string) || 'mana';
+    const sortOrder = (req.query.sortOrder as string) || 'desc';
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
 
-    // Validate sorting parameters
-    const validation = validateSortingParams(
-      sortBy as string,
-      sortOrder as string
-    );
+    const validation = validateSortingParams(sortBy, sortOrder);
+
     if (!validation.valid) {
-      res.status(400).json({ message: validation.message });
+      res.status(400).json({ error: validation.message });
       return;
     }
 
-    // Get the authenticated user's ID and their friends
+    // Get current user and their friends
     const userId = req.user.id;
     const user = await User.findById(userId).populate('friends');
+
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ error: 'User not found' });
       return;
     }
 
-    // Convert friend values to ObjectId before passing to the pipeline
+    // Include both user and their friends in the leaderboard
     const friendIds = [user._id, ...user.friends.map((friend) => friend._id)];
 
-    // Build the aggregation pipeline
+    // Build and execute pipeline
     const pipeline = buildLeaderboardPipeline({
       friendIds,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as string,
-      page: Number(page),
-      limit: Number(limit),
+      sortBy,
+      sortOrder,
+      page,
+      limit,
     });
 
-    // Execute the aggregation pipeline
     const leaderboard = await User.aggregate(pipeline);
-
-    // Send the leaderboard data as a JSON response
     res.status(200).json({ leaderboard });
   } catch (error) {
-    next(error);
+    console.error('Friend leaderboard error:', error);
+    res.status(500).json({ error: 'Error fetching friend leaderboard' });
   }
 };

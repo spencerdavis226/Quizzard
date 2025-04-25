@@ -2,14 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../config';
 
-// JWT payload interface
+// JWT payload interface - defines what we store in the JWT token
 interface JwtPayload {
   id: string;
   username: string;
 }
 
-// Extend the Request interface to include the user property
-// (This allows us to access the user id and username in the request object)
+// Extend the Request interface to include the authenticated user data
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
@@ -17,7 +16,8 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-// Middleware function to authenticate the user
+// Authentication middleware
+// Verifies JWT token from Authorization header and adds user data to request object
 export const authenticate = (
   req: AuthenticatedRequest,
   res: Response,
@@ -25,11 +25,12 @@ export const authenticate = (
 ): void => {
   try {
     // Get the token from the Authorization header
-    const authHeader = req.headers['authorization'];
+    const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ message: 'Invalid authorization header format' });
+      res.status(401).json({ error: 'Invalid authorization header format' });
       return;
     }
+
     const token = authHeader.split(' ')[1];
 
     // Verify the token
@@ -43,18 +44,19 @@ export const authenticate = (
 
     next();
   } catch (error) {
-    // Token expired
+    // Handle different types of JWT errors
     if (error instanceof jwt.TokenExpiredError) {
-      res.status(401).json({ message: 'Token expired' });
+      res.status(401).json({ error: 'Token expired' });
       return;
     }
-    // Invalid token
+
     if (error instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({ message: 'Invalid token' });
+      res.status(401).json({ error: 'Invalid token' });
       return;
     }
-    // Other errors
+
+    // Any other error
     console.error('Authentication error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 };

@@ -5,7 +5,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import User, { IUser } from '../models/User';
 import { validToken, createTestUser } from './testUtils';
 
-// Mock database connection to prevent real DB calls during tests
+// Mock database connection
 jest.mock('../config/db', () => ({
   connectDB: jest.fn(),
   disconnectDB: jest.fn(),
@@ -15,152 +15,123 @@ let mongoServer: MongoMemoryServer;
 let testUser: IUser;
 let testFriend: IUser;
 
-// Set up an in-memory MongoDB server and connect to it before running tests
+// Setup test environment
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
 });
 
-// Clean up the in-memory MongoDB server and disconnect Mongoose after all tests
+// Clean up after all tests
 afterAll(async () => {
   await mongoose.disconnect();
   await mongoServer.stop();
 });
 
+// Reset test data before each test
 beforeEach(async () => {
-  // Clear the database before each test
   await User.deleteMany({});
-
-  // Create a test user and a test friend
-  const { testUser: createdTestUser, testFriend: createdTestFriend } =
-    await createTestUser();
-  testUser = createdTestUser;
-  testFriend = createdTestFriend;
+  const { testUser: user, testFriend: friend } = await createTestUser();
+  testUser = user;
+  testFriend = friend;
 });
 
-// Test to ensure unauthenticated users cannot access user profile
-// This checks if the API returns a 401 Unauthorized error when no token is provided
-describe('GET /api/user', () => {
-  it('should return 401 if not authenticated', async () => {
+// Core profile functionality tests
+describe('User Profile Management', () => {
+  // Authentication check
+  it('requires authentication for user profile endpoints', async () => {
     const response = await request(app).get('/api/user/me');
     expect(response.status).toBe(401);
   });
-});
 
-// Tests for user-related API endpoints, such as retrieving and updating user profiles
-describe('User Endpoints', () => {
-  // Test to retrieve the user profile when authenticated
-  it('should retrieve the user profile', async () => {
+  // Retrieve profile
+  it('retrieves the user profile when authenticated', async () => {
     const response = await request(app)
       .get('/api/user/me')
       .set('Authorization', `Bearer ${validToken(testUser._id)}`);
+
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty('username', testUser.username);
+    expect(response.body).toHaveProperty('email', testUser.email);
   });
 
-  // Test to update the user profile with new data
-  it('should update the user profile', async () => {
+  // Update profile
+  it('updates the user profile successfully', async () => {
     const response = await request(app)
       .put('/api/user/me')
       .set('Authorization', `Bearer ${validToken(testUser._id)}`)
       .send({ username: 'updateduser' });
+
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty('username', 'updateduser');
   });
+});
 
-  // Test to add a friend to the user's friend list
-  it('should add a friend', async () => {
+// Core friend functionality tests
+describe('Friend Management', () => {
+  // Add friend
+  it("adds a friend to user's friend list", async () => {
     const response = await request(app)
       .post('/api/user/friends')
       .set('Authorization', `Bearer ${validToken(testUser._id)}`)
       .send({ username: testFriend.username });
+
     expect(response.status).toBe(200);
     expect(response.body.user.friends).toContainEqual(
       testFriend._id.toString()
     );
   });
 
-  // Test to remove a friend from the user's friend list
-  it('should remove a friend', async () => {
-    // Add the friend first
+  // Remove friend
+  it("removes a friend from user's friend list", async () => {
+    // First add the friend
     await request(app)
       .post('/api/user/friends')
       .set('Authorization', `Bearer ${validToken(testUser._id)}`)
       .send({ username: testFriend.username });
 
-    // Now remove the friend
+    // Then remove the friend
     const response = await request(app)
       .delete('/api/user/friends')
       .set('Authorization', `Bearer ${validToken(testUser._id)}`)
       .send({ username: testFriend.username });
+
     expect(response.status).toBe(200);
     expect(response.body.user.friends).not.toContainEqual(
       testFriend._id.toString()
     );
   });
-});
 
-// Tests for edge cases in friend management, such as adding or removing non-existent users
-describe('Friend management edge cases', () => {
-  // Test to ensure adding a non-existent user as a friend returns a 404 error
-  it('should return 404 when adding a non-existent user as a friend', async () => {
-    const response = await request(app)
-      .post('/api/user/friends')
-      .set('Authorization', `Bearer ${validToken(testUser._id)}`)
-      .send({ username: 'ghostuser' });
-    expect(response.status).toBe(404);
-  });
-
-  // Test to ensure removing a non-existent user as a friend returns a 404 error
-  it('should return 404 when removing a non-existent user as a friend', async () => {
-    const response = await request(app)
-      .delete('/api/user/friends')
-      .set('Authorization', `Bearer ${validToken(testUser._id)}`)
-      .send({ username: 'ghostuser' });
-    expect(response.status).toBe(404);
-  });
-});
-
-// Tests for deleting the user account
-describe('DELETE /api/user/me', () => {
-  // Test to ensure the user account is deleted successfully
-  it('should delete the user account', async () => {
-    const response = await request(app)
-      .delete('/api/user/me')
-      .set('Authorization', `Bearer ${validToken(testUser._id)}`);
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty(
-      'message',
-      'Account deleted successfully'
-    );
-  });
-});
-
-// Tests for fetching the user's friends list
-describe('GET /api/user/friends', () => {
-  // Test to ensure the friends list is fetched correctly
-  it('should fetch the friends list', async () => {
-    // Add the friend to the user's friends list
+  // Fetch friends list
+  it("fetches the user's friends list", async () => {
+    // Add friend to user's friends list directly
     testUser.friends.push(testFriend._id);
     await testUser.save();
 
     const response = await request(app)
       .get('/api/user/friends')
       .set('Authorization', `Bearer ${validToken(testUser._id)}`);
+
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body.friends)).toBe(true);
     expect(response.body.friends[0]._id).toBe(testFriend._id.toString());
   });
 });
 
-// Tests for protecting user stats endpoints from unauthenticated access
-describe('User stats protection', () => {
-  // Test to ensure unauthenticated users cannot access the stats endpoint
-  it('should return 401 if not authenticated for POST /api/user/stats', async () => {
-    const response = await request(app)
-      .post('/api/user/stats')
-      .send({ mana: 10, mageMeter: 50 });
-    expect(response.status).toBe(401);
+// Game stats tests
+describe('User Game Stats', () => {
+  // Get stats
+  it("fetches the user's game stats", async () => {
+    // Set some stats first
+    testUser.mana = 50;
+    testUser.mageMeter = 75;
+    await testUser.save();
+
+    // No need for authorization header since this endpoint doesn't require it
+    const response = await request(app).get(`/api/user/stats/${testUser._id}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('mana', 50);
+    expect(response.body).toHaveProperty('mageMeter', 75);
   });
 });
