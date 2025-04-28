@@ -101,3 +101,41 @@ export async function removeFriend(username: string) {
   }
   return response.json();
 }
+
+export async function getGlobalLeaderboard(
+  sortBy: 'mana' | 'mageMeter' = 'mana',
+  page: number = 1,
+  limit: number = 10
+) {
+  const token = getToken();
+  const response = await fetch(
+    `/api/leaderboard/global?sortBy=${sortBy}&sortOrder=desc&page=${page}&limit=${limit}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to fetch global leaderboard');
+  }
+  return response.json();
+}
+
+export async function getFriendLeaderboard(
+  sortBy: 'mana' | 'mageMeter' = 'mana',
+  page: number = 1,
+  limit: number = 10
+) {
+  const token = getToken();
+  const response = await fetch(
+    `/api/leaderboard/friends?sortBy=${sortBy}&sortOrder=desc&page=${page}&limit=${limit}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to fetch friend leaderboard');
+  }
+  return response.json();
+}

@@ -9,6 +9,7 @@ import QuizPage from './pages/QuizPage';
 import QuizResultsPage from './pages/QuizResultsPage';
 import EditProfilePage from './pages/EditProfilePage';
 import FriendsPage from './pages/FriendsPage';
+import LeaderboardPage from './pages/LeaderboardPage';
 
 function App() {
   return (
@@ -53,6 +54,14 @@ function App() {
           element={
             <RequireAuth>
               <FriendsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <RequireAuth>
+              <LeaderboardPage />
             </RequireAuth>
           }
         />
