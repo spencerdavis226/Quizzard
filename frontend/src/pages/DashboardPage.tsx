@@ -1,31 +1,27 @@
+import './DashboardPage.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getToken } from '../utils/token';
 
+// User stats type
 interface UserStats {
   mana: number;
   mageMeter: number;
 }
 
-function getPerformanceGrade(percentage: number): string {
-  if (percentage >= 90) return 'Archmage';
-  if (percentage >= 80) return 'Master Wizard';
-  if (percentage >= 70) return 'Adept Spellcaster';
-  if (percentage >= 60) return 'Apprentice Mage';
-  if (percentage >= 50) return 'Magic Novice';
-  return 'Beginner Spellcaster';
-}
-
 function DashboardPage() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [error, setError] = useState('');
+  const [username, setUsername] = useState<string>('');
   const navigate = useNavigate();
 
+  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/');
   };
 
+  // Fetch user stats and username on mount
   useEffect(() => {
     const fetchStats = async () => {
       const token = getToken();
@@ -37,14 +33,10 @@ function DashboardPage() {
         const res = await fetch('/api/user/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) {
-          throw new Error('Failed to fetch user stats');
-        }
+        if (!res.ok) throw new Error('Failed to fetch user stats');
         const data = await res.json();
-        setStats({
-          mana: data.mana,
-          mageMeter: data.mageMeter,
-        });
+        setStats({ mana: data.mana, mageMeter: data.mageMeter });
+        setUsername(data.username || '');
       } catch {
         setError('Could not load stats.');
       }
@@ -52,142 +44,46 @@ function DashboardPage() {
     fetchStats();
   }, []);
 
+  // Show error or loading
   if (error)
     return <div style={{ textAlign: 'center', marginTop: 50 }}>{error}</div>;
   if (!stats)
     return <div style={{ textAlign: 'center', marginTop: 50 }}>Loading...</div>;
 
-  const performanceGrade = getPerformanceGrade(stats.mageMeter);
-
+  // Main dashboard UI
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ textAlign: 'center' }}>Dashboard</h1>
-
-      <div
-        style={{
-          padding: '15px',
-          marginBottom: '20px',
-          backgroundColor: '#f0f8ff',
-          borderRadius: '8px',
-          textAlign: 'center',
-          border: '2px solid #007BFF',
-        }}
-      >
-        <h2 style={{ margin: '0 0 10px 0', color: '#007BFF' }}>
-          Current Title: {performanceGrade}
-        </h2>
-        <div style={{ fontSize: '14px', color: '#666' }}>
-          Continue taking quizzes to improve your magical rank!
+      {username && (
+        <div className="dashboard-greeting">
+          Hello, <span className="dashboard-username">{username}</span>!
         </div>
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '20px',
-          justifyContent: 'center',
-        }}
-      >
-        <div
-          style={{
-            flex: '1 1 200px',
-            padding: '15px',
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            textAlign: 'center',
-            fontSize: '14px',
-          }}
-        >
+      )}
+      <div className="dashboard-cards">
+        <div className="dashboard-card">
           <h2>🔮 Mana</h2>
           <p>{stats.mana}</p>
         </div>
-        <div
-          style={{
-            flex: '1 1 200px',
-            padding: '15px',
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            textAlign: 'center',
-            fontSize: '14px',
-          }}
-        >
+        <div className="dashboard-card">
           <h2>⚡ Mage Meter</h2>
           <p>{Math.round(stats.mageMeter)}%</p>
         </div>
       </div>
-
-      <div
-        style={{
-          marginTop: '40px',
-          textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-        }}
-      >
-        <Link
-          to="/quiz"
-          style={{
-            padding: '10px 20px',
-            border: '1px solid #007BFF',
-            borderRadius: '4px',
-            textDecoration: 'none',
-            color: '#007BFF',
-          }}
-        >
+      <div className="dashboard-links">
+        <Link to="/quiz" className="dashboard-link">
           Start a Quiz
         </Link>
-        <Link
-          to="/leaderboard"
-          style={{
-            padding: '10px 20px',
-            border: '1px solid #007BFF',
-            borderRadius: '4px',
-            textDecoration: 'none',
-            color: '#007BFF',
-          }}
-        >
+        <Link to="/leaderboard" className="dashboard-link">
           Leaderboard
         </Link>
-        <Link
-          to="/friends"
-          style={{
-            padding: '10px 20px',
-            border: '1px solid #007BFF',
-            borderRadius: '4px',
-            textDecoration: 'none',
-            color: '#007BFF',
-          }}
-        >
+        <Link to="/friends" className="dashboard-link">
           Manage Friends
         </Link>
-        <Link
-          to="/profile"
-          style={{
-            padding: '10px 20px',
-            border: '1px solid #007BFF',
-            borderRadius: '4px',
-            textDecoration: 'none',
-            color: '#007BFF',
-          }}
-        >
+        <Link to="/profile" className="dashboard-link">
           Edit Profile
         </Link>
       </div>
-
-      <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: '10px 20px',
-            border: '1px solid #FF0000',
-            borderRadius: '4px',
-            backgroundColor: '#FF0000',
-            color: '#FFFFFF',
-            cursor: 'pointer',
-          }}
-        >
+      <div className="dashboard-logout">
+        <button onClick={handleLogout} className="dashboard-logout-button">
           Logout
         </button>
       </div>

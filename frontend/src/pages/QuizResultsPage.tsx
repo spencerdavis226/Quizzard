@@ -1,110 +1,81 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import './QuizResultsPage.css';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-// Define types for quiz data passed from QuizPage
+// Quiz question type
 interface Question {
   question: string;
-  category: string;
-  difficulty: string;
   options: string[];
   correct_answer: string;
 }
 
+// Quiz score type
 interface Score {
-  category: string;
-  difficulty: string;
   questionCount: number;
   correctAnswers: number;
   percentage: number;
 }
 
-// Interface for the complete state passed from quiz page
+// Results state type
 interface ResultsState {
   mana?: number;
   mageMeter?: number;
   questions: Question[];
   userAnswers: number[];
-  timedOutQuestions?: boolean[];
   score?: Score;
-  error?: string; // Allow for error message to be passed from QuizPage
+  error?: string;
 }
 
-// Helper to capitalize first letter of each word
-function capitalizeWords(str: string): string {
-  return str
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+// Decode HTML entities
+function decodeHtml(html: string): string {
+  const txt = document.createElement('textarea');
+  txt.innerHTML = html;
+  return txt.value;
 }
 
-// Quiz results component to display summary and details of completed quiz
 const QuizResultsPage: React.FC = () => {
-  // Get navigation and location utilities
+  // Get navigation and state
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Local state for storing computed score if there was an API submission error
-  const [computedScore, setComputedScore] = React.useState<Score | null>(null);
-
-  // Extract quiz results from location state
   const {
     mana,
     mageMeter,
-    questions,
-    userAnswers,
-    timedOutQuestions = [],
+    questions = [],
+    userAnswers = [],
     score,
     error: submitError,
   } = (location.state as ResultsState) || {};
 
-  // Effect to calculate score locally if we received questions but submission failed
-  React.useEffect(() => {
-    // If we have questions and answers but no score (failed to submit), calculate locally
-    if (questions?.length && userAnswers?.length && !score) {
-      // Count correct answers
-      let correctCount = 0;
-      questions.forEach((q, idx) => {
-        if (
-          userAnswers[idx] !== -1 &&
-          !timedOutQuestions[idx] &&
-          q.options[userAnswers[idx]] === q.correct_answer
-        ) {
-          correctCount++;
-        }
-      });
-
-      // Find the most common category for the summary
-      const categoryCounts: Record<string, number> = {};
-      questions.forEach((q) => {
-        categoryCounts[q.category] = (categoryCounts[q.category] || 0) + 1;
-      });
-
-      let primaryCategory = 'Mixed Categories';
-      let maxCount = 0;
-      for (const [category, count] of Object.entries(categoryCounts)) {
-        if (count > maxCount) {
-          maxCount = count;
-          primaryCategory = category;
-        }
+  // Compute score if not provided
+  const computedScore: Score = score || {
+    questionCount: questions.length,
+    correctAnswers: questions.reduce((acc, q, idx) => {
+      if (
+        userAnswers[idx] !== -1 &&
+        q.options[userAnswers[idx]] === q.correct_answer
+      ) {
+        return acc + 1;
       }
+      return acc;
+    }, 0),
+    percentage: questions.length
+      ? Math.round(
+          (questions.reduce((acc, q, idx) => {
+            if (
+              userAnswers[idx] !== -1 &&
+              q.options[userAnswers[idx]] === q.correct_answer
+            ) {
+              return acc + 1;
+            }
+            return acc;
+          }, 0) /
+            questions.length) *
+            100
+        )
+      : 0,
+  };
 
-      // Create local score object
-      setComputedScore({
-        category: primaryCategory,
-        difficulty: 'Mixed', // We're using mixed difficulty levels
-        questionCount: questions.length,
-        correctAnswers: correctCount,
-        percentage: Math.round((correctCount / questions.length) * 100),
-      });
-    }
-  }, [questions, userAnswers, timedOutQuestions, score]);
-
-  // Use the server score if available, otherwise fall back to computed score
-  const displayScore = score || computedScore;
-
-  // Handle missing quiz data (e.g., if user navigated directly to this page)
-  if (!questions || !userAnswers) {
+  // Show error if no results
+  if (!questions.length || !userAnswers.length) {
     return (
       <div className="error-container">
         <div className="error-emoji">🧙‍♂️</div>
@@ -117,81 +88,10 @@ const QuizResultsPage: React.FC = () => {
     );
   }
 
-  // Calculate the performance grade based on percentage
-  const getPerformanceGrade = (percentage: number): string => {
-    if (percentage >= 90) return 'Archmage Level';
-    if (percentage >= 80) return 'Master Wizard';
-    if (percentage >= 70) return 'Adept Spellcaster';
-    if (percentage >= 60) return 'Apprentice Mage';
-    if (percentage >= 50) return 'Magic Novice';
-    return 'Beginner Spellcaster';
-  };
-
-  // Generate a motivational message based on performance
-  const getMotivationalMessage = (percentage: number): string => {
-    if (percentage >= 80) {
-      return 'Impressive magical knowledge! Your spellcasting skills are extraordinary.';
-    } else if (percentage >= 60) {
-      return 'Well done! Your magical abilities are growing stronger.';
-    } else if (percentage >= 40) {
-      return 'Keep practicing your spells. Your magical potential is there!';
-    } else {
-      return 'Every great wizard starts somewhere. Keep studying the magical arts!';
-    }
-  };
-
-  // Count categories and difficulties for the summary section
-  const getCategoryBreakdown = (): React.ReactElement => {
-    const categories: Record<string, number> = {};
-    questions.forEach((q) => {
-      categories[q.category] = (categories[q.category] || 0) + 1;
-    });
-
-    return (
-      <div className="breakdown">
-        <p>
-          <strong>Categories covered:</strong>
-        </p>
-        <ul className="breakdown-list">
-          {Object.entries(categories).map(([category, count]) => (
-            <li key={category}>
-              {category}: {count} question{count !== 1 ? 's' : ''}
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  };
-
-  const getDifficultyBreakdown = (): React.ReactElement => {
-    const difficulties: Record<string, number> = {};
-    questions.forEach((q) => {
-      difficulties[q.difficulty] = (difficulties[q.difficulty] || 0) + 1;
-    });
-
-    return (
-      <div className="breakdown">
-        <p>
-          <strong>Difficulty breakdown:</strong>
-        </p>
-        <ul className="breakdown-list">
-          {Object.entries(difficulties).map(([difficulty, count]) => (
-            <li key={difficulty}>
-              {capitalizeWords(difficulty)}: {count} question
-              {count !== 1 ? 's' : ''}
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  };
-
-  // Main render of results page
+  // Main results UI
   return (
     <div className="results-container">
       <h1 className="results-title">Quiz Results</h1>
-
-      {/* Show server error message if present */}
       {submitError && (
         <div className="error-message">
           <p>
@@ -202,128 +102,61 @@ const QuizResultsPage: React.FC = () => {
           </p>
         </div>
       )}
-
-      {/* Performance summary section */}
       <div className="performance-summary">
         <h2 className="performance-grade">
-          {displayScore && getPerformanceGrade(displayScore.percentage)}
+          Score: {computedScore.correctAnswers} / {computedScore.questionCount}{' '}
+          ({computedScore.percentage}%)
         </h2>
-        <p className="motivation-message">
-          {displayScore && getMotivationalMessage(displayScore.percentage)}
-        </p>
-        <div className="stats-container">
-          {/* Only show mana/mageMeter if server submission was successful */}
-          {mana !== undefined && mageMeter !== undefined ? (
-            <>
-              <div className="stat-card">
-                <div className="stat-title">🔮 Total Mana</div>
-                <div className="stat-value">{mana}</div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-title">⚡ Mage Meter</div>
-                <div className="stat-value">{Math.round(mageMeter)}%</div>
-              </div>
-            </>
-          ) : (
-            <div className="error-notice">
-              <p>Stats not updated due to connection error.</p>
-            </div>
-          )}
-
-          <div className="stat-card">
-            <div className="stat-title">✨ Quiz Score</div>
-            <div className="stat-value">
-              {displayScore?.correctAnswers}/{displayScore?.questionCount} (
-              {displayScore?.percentage}%)
-            </div>
+        {mana !== undefined && mageMeter !== undefined && (
+          <div style={{ marginTop: 10 }}>
+            <span>
+              Mana: {mana} | Mage Meter: {mageMeter}%
+            </span>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Quiz metadata section */}
-      <div className="metadata-section">
-        <h3>Quiz Details</h3>
-
-        {/* Main category (most common) */}
-        <p>
-          <strong>Primary Category:</strong> {displayScore?.category}
-        </p>
-
-        {/* Category breakdown */}
-        {getCategoryBreakdown()}
-
-        {/* Difficulty breakdown */}
-        {getDifficultyBreakdown()}
-
-        {/* Overall stats */}
-        <p className="total-questions">
-          <strong>Total Questions:</strong> {displayScore?.questionCount}
-        </p>
-        <p>
-          <strong>Success Rate:</strong> {displayScore?.percentage}%
-        </p>
-      </div>
-
-      {/* Questions and answers review section */}
       <h3>Review Your Answers</h3>
       <div className="answers-review">
         <ol>
           {questions.map((question, idx) => {
-            // Get user's selected answer index
             const userAnswerIdx = userAnswers[idx];
-
-            // Get the text of the user's answer
             const userAnswer =
               userAnswerIdx !== -1
                 ? question.options[userAnswerIdx]
                 : 'No answer';
-
-            // Check if the user's answer is correct
-            const isCorrect = userAnswer === question.correct_answer;
-
+            const isCorrect =
+              userAnswerIdx !== -1 &&
+              question.options[userAnswerIdx] === question.correct_answer;
             return (
-              <li
-                key={idx}
-                className={`review-item ${isCorrect ? 'correct' : 'incorrect'}`}
-              >
-                {/* Question metadata */}
-                <div className="question-metadata">
-                  <span>Category: {question.category}</span>
-                  <span>
-                    Difficulty: {capitalizeWords(question.difficulty)}
-                  </span>
+              <li key={idx} className={isCorrect ? 'correct' : 'incorrect'}>
+                <div className="question-text">
+                  <strong>Q{idx + 1}:</strong> {decodeHtml(question.question)}
                 </div>
-
-                {/* Question text */}
-                <div className="question-text">{question.question}</div>
-
-                {/* User's answer */}
-                <div className="user-answer">
-                  <span className="answer-label">Your answer: </span>
+                <div className="answer-row">
                   <span
-                    className={`answer-value ${
-                      isCorrect ? 'correct-text' : 'incorrect-text'
+                    className={`user-answer${
+                      isCorrect
+                        ? ' correct'
+                        : userAnswerIdx !== -1
+                        ? ' incorrect'
+                        : ''
                     }`}
                   >
-                    {userAnswer}
-                    {isCorrect ? ' ✓' : ' ✗'}
+                    {userAnswerIdx !== -1
+                      ? decodeHtml(userAnswer)
+                      : 'No answer'}
                   </span>
+                  {!isCorrect && (
+                    <span className="correct-answer">
+                      (Correct: {decodeHtml(question.correct_answer)})
+                    </span>
+                  )}
                 </div>
-
-                {/* Show correct answer if user was wrong */}
-                {!isCorrect && (
-                  <div className="correct-answer">
-                    Correct answer: {question.correct_answer}
-                  </div>
-                )}
               </li>
             );
           })}
         </ol>
       </div>
-
-      {/* Navigation buttons */}
       <div className="navigation-buttons">
         <button
           onClick={() => navigate('/dashboard')}
@@ -331,7 +164,6 @@ const QuizResultsPage: React.FC = () => {
         >
           Back to Dashboard
         </button>
-
         <button onClick={() => navigate('/quiz')} className="button-primary">
           New Quiz
         </button>

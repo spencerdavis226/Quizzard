@@ -63,13 +63,13 @@ describe('GET /api/quiz', () => {
       .set('Authorization', `Bearer ${validToken('testUserId')}`);
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveLength(10);
-    expect(response.body[0]).toHaveProperty('question');
-    expect(response.body[0]).toHaveProperty('correct_answer');
-    expect(response.body[0]).toHaveProperty('incorrect_answers');
+    expect(response.body.questions).toHaveLength(10);
+    expect(response.body.questions[0]).toHaveProperty('question');
+    expect(response.body.questions[0]).toHaveProperty('correct_answer');
+    expect(response.body.questions[0]).toHaveProperty('incorrect_answers');
   });
 
-  // Test API failure scenario - updated to match expected error message
+  // Test API failure scenario - updated to match actual error message
   it('should return 400 if Open Trivia DB fails', async () => {
     mockedAxios.get.mockResolvedValueOnce({
       data: { response_code: 1 },
@@ -82,7 +82,7 @@ describe('GET /api/quiz', () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty(
       'error',
-      'No questions found for this selection. Try a different category or difficulty.'
+      'No questions found. Please try again later.'
     );
   });
 });

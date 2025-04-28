@@ -1,5 +1,3 @@
-/* QuizPage.css - Styles for the timed quiz with responsive design */
-
 .quiz-container {
   max-width: 600px;
   margin: 40px auto;
@@ -63,7 +61,6 @@
 }
 
 .timer-normal {
-  background-color: #e3f2fd;
   color: #0d47a1;
 }
 

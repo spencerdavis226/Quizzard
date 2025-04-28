@@ -1,21 +1,25 @@
+// Import dependencies and styles
+import './LoginPage.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { login } from '../api/auth';
 
 function LoginPage() {
+  // State for form fields and UI
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Handle login form submission
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      // Call the login function from the API
-      const data = await login(email, password); // Expected to return { token: string }
+      // Call the login API
+      const data = await login(email, password);
       localStorage.setItem('token', data.token);
       navigate('/dashboard');
     } catch (err) {
@@ -27,20 +31,20 @@ function LoginPage() {
     }
   };
 
+  // Render login form UI
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <div style={{ fontSize: '100px', lineHeight: '1' }}>🧙‍♂️</div>
+    <div className="login-container">
+      <div className="login-emoji">🧙‍♂️</div>
       <h1>Welcome to Quizzard!</h1>
       <p>The ultimate quiz experience awaits you.</p>
-
-      <form onSubmit={handleLogin} style={{ marginTop: '20px' }}>
+      <form onSubmit={handleLogin} className="login-form">
         <div>
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ padding: '10px', margin: '5px', width: '200px' }}
+            className="login-input"
             required
           />
         </div>
@@ -50,22 +54,16 @@ function LoginPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ padding: '10px', margin: '5px', width: '200px' }}
+            className="login-input"
             required
           />
         </div>
-        <button
-          type="submit"
-          style={{ padding: '10px 20px', marginTop: '10px' }}
-          disabled={loading}
-        >
+        <button type="submit" className="login-button" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
-
-      {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
-
-      <p style={{ marginTop: '20px' }}>
+      {error && <p className="login-error">{error}</p>}
+      <p className="login-register-link">
         Don't have an account? <Link to="/register">Register here</Link>
       </p>
     </div>

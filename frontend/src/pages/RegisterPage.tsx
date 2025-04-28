@@ -1,8 +1,11 @@
+// Import dependencies and styles
+import './RegisterPage.css';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register, login } from '../api/auth';
 
 function RegisterPage() {
+  // State for form fields and UI
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -10,15 +13,17 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Handle register form submission
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await register(username, email, password); // Register the user
-      const data = await login(email, password); // Log in the user
-      localStorage.setItem('token', data.token); // Store the JWT
-      navigate('/dashboard'); // Redirect to dashboard
+      // Register and log in the user
+      await register(username, email, password);
+      const data = await login(email, password);
+      localStorage.setItem('token', data.token);
+      navigate('/dashboard');
     } catch (err) {
       const errorMessage =
         (err as { message?: string })?.message || 'Registration failed';
@@ -28,17 +33,18 @@ function RegisterPage() {
     }
   };
 
+  // Render register form UI
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
+    <div className="register-container">
       <h1>Register</h1>
-      <form onSubmit={handleRegister} style={{ marginTop: '20px' }}>
+      <form onSubmit={handleRegister} className="register-form">
         <div>
           <input
             type="text"
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            style={{ padding: '10px', margin: '5px', width: '200px' }}
+            className="register-input"
             required
           />
         </div>
@@ -48,7 +54,7 @@ function RegisterPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ padding: '10px', margin: '5px', width: '200px' }}
+            className="register-input"
             required
           />
         </div>
@@ -58,22 +64,16 @@ function RegisterPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ padding: '10px', margin: '5px', width: '200px' }}
+            className="register-input"
             required
           />
         </div>
-        <button
-          type="submit"
-          style={{ padding: '10px 20px', marginTop: '10px' }}
-          disabled={loading}
-        >
+        <button type="submit" className="register-button" disabled={loading}>
           {loading ? 'Registering...' : 'Register'}
         </button>
       </form>
-
-      {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
-
-      <p style={{ marginTop: '20px' }}>
+      {error && <p className="register-error">{error}</p>}
+      <p className="register-login-link">
         Already have an account? <Link to="/">Login here</Link>
       </p>
     </div>
