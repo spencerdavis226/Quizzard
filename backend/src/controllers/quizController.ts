@@ -25,8 +25,9 @@ interface QuizScoreSubmission {
   correctAnswers: number;
 }
 
-// Store the session token in memory
-let triviaSessionToken: string | null = null;
+// Use a Map to store questions by user ID
+// This ensures each user gets their own consistent set of questions
+const userQuestionsCache = new Map<string, OpenTriviaQuestion[]>();
 
 // Helper to get a session token
 async function getTriviaSessionToken(): Promise<string> {
@@ -39,92 +40,93 @@ async function getTriviaSessionToken(): Promise<string> {
   throw new Error('Could not get trivia session token');
 }
 
-// Helper to reset a session token
-async function resetTriviaSessionToken(token: string): Promise<string> {
-  const resp = await axios.get(
-    `https://opentdb.com/api_token.php?command=reset&token=${token}`
-  );
-  if (resp.data && resp.data.token) {
-    return resp.data.token;
-  }
-  throw new Error('Could not reset trivia session token');
-}
-
-// On server start, get a session token
-(async () => {
+// Helper to fetch questions from the Open Trivia DB API
+async function fetchQuestionsFromAPI(): Promise<OpenTriviaQuestion[]> {
   try {
-    triviaSessionToken = await getTriviaSessionToken();
-    console.log('Trivia session token acquired');
-  } catch (err) {
-    console.error('Failed to get trivia session token:', err);
+    // Get a fresh token for each quiz session
+    const token = await getTriviaSessionToken();
+
+    const url = `https://opentdb.com/api.php?amount=10&type=multiple&token=${token}`;
+    const response = await axios.get<OpenTriviaResponse>(url);
+
+    if (
+      response.data.response_code !== 0 ||
+      !Array.isArray(response.data.results)
+    ) {
+      throw new Error(
+        `API returned error code: ${response.data.response_code}`
+      );
+    }
+
+    return response.data.results;
+  } catch (error) {
+    console.error('Error fetching trivia questions:', error);
+    throw error;
   }
-})();
+}
 
 // Fetch quiz questions from Open Trivia DB
 export const getQuizQuestions = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  async function fetchQuestionsWithToken(token: string | null) {
-    const url = `https://opentdb.com/api.php?amount=10&type=multiple${
-      token ? `&token=${token}` : ''
-    }`;
-    return axios.get<OpenTriviaResponse>(url);
-  }
-
-  // Helper to wait for ms milliseconds
-  function wait(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
   try {
-    let response;
-    try {
-      response = await fetchQuestionsWithToken(triviaSessionToken);
-    } catch (error: any) {
-      // If 429, wait 5 seconds and retry once
-      if (error.response && error.response.status === 429) {
-        await wait(5000);
-        response = await fetchQuestionsWithToken(triviaSessionToken);
-      } else {
-        throw error;
-      }
-    }
-    // If token error, reset or get new token and retry once
-    if (
-      response.data.response_code === 3 ||
-      response.data.response_code === 4
-    ) {
-      if (triviaSessionToken) {
-        triviaSessionToken = await resetTriviaSessionToken(triviaSessionToken);
-      } else {
-        triviaSessionToken = await getTriviaSessionToken();
-      }
-      response = await fetchQuestionsWithToken(triviaSessionToken);
-    }
-    if (
-      response.data.response_code !== 0 ||
-      !Array.isArray(response.data.results) ||
-      response.data.results.length === 0
-    ) {
-      res.status(400).json({
+    // Get the user ID from the authenticated request
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({
         success: false,
-        error: 'No questions found. Please try again later.',
+        error: 'Authentication required',
         questions: [],
       });
       return;
     }
-    res.status(200).json({
-      success: true,
-      questions: response.data.results,
-    });
+
+    // If we already have questions cached for this user, return those
+    if (userQuestionsCache.has(userId)) {
+      const cachedQuestions = userQuestionsCache.get(userId);
+      res.status(200).json({
+        success: true,
+        questions: cachedQuestions,
+      });
+      return;
+    }
+
+    // Otherwise fetch new questions
+    try {
+      const questions = await fetchQuestionsFromAPI();
+
+      // Cache the questions for this user
+      userQuestionsCache.set(userId, questions);
+
+      // Return the questions
+      res.status(200).json({
+        success: true,
+        questions,
+      });
+    } catch (error) {
+      console.error('Failed to fetch questions:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch quiz questions. Please try again later.',
+        questions: [],
+      });
+    }
   } catch (error) {
-    console.error('Error fetching quiz questions:', error);
+    console.error('Error in getQuizQuestions:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch quiz questions. Please try again later.',
+      error: 'Server error',
       questions: [],
     });
+  }
+};
+
+// Clear user's cached questions (call this when they finish a quiz)
+export const clearUserQuestions = (userId: string): void => {
+  if (userQuestionsCache.has(userId)) {
+    userQuestionsCache.delete(userId);
   }
 };
 
@@ -190,7 +192,10 @@ export const submitQuizScore = async (
       return;
     }
 
-    // Always return a consistent structure
+    // Clear the cached questions for this user since they've completed the quiz
+    clearUserQuestions(userId);
+
+    // Return success response
     res.status(200).json({
       success: true,
       message: 'Score submitted successfully',
