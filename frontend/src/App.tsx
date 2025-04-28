@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage';
 import QuizPage from './pages/QuizPage';
 import QuizResultsPage from './pages/QuizResultsPage';
 import EditProfilePage from './pages/EditProfilePage';
+import FriendsPage from './pages/FriendsPage';
 
 function App() {
   return (
@@ -44,6 +45,14 @@ function App() {
           element={
             <RequireAuth>
               <EditProfilePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/friends"
+          element={
+            <RequireAuth>
+              <FriendsPage />
             </RequireAuth>
           }
         />
