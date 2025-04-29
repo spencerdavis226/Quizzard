@@ -2,6 +2,7 @@ import './DashboardPage.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getToken } from '../utils/token';
+import { API_URL } from '../config';
 
 // User stats type
 interface UserStats {
@@ -30,7 +31,7 @@ function DashboardPage() {
         return;
       }
       try {
-        const res = await fetch('/api/user/me', {
+        const res = await fetch(`${API_URL}/user/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch user stats');

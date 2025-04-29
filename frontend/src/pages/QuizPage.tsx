@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken } from '../utils/token';
+import { API_URL } from '../config';
 import './QuizPage.css';
 
 // Quiz question type
@@ -36,7 +37,7 @@ const QuizPage: React.FC = () => {
       try {
         const token = getToken();
         if (!token) throw new Error('Authentication token not found');
-        const response = await fetch('/api/quiz', {
+        const response = await fetch(`${API_URL}/quiz`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) {
@@ -113,7 +114,7 @@ const QuizPage: React.FC = () => {
         questionCount: questions.length,
         correctAnswers: correct,
       };
-      const response = await fetch('/api/quiz/submit', {
+      const response = await fetch(`${API_URL}/quiz/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
