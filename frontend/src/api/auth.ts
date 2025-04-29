@@ -1,6 +1,8 @@
+import { API_URL } from '../config';
+
 // USER LOGIN
 export async function login(email: string, password: string) {
-  const response = await fetch('/api/auth/login', {
+  const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     // Explicitly set the header so the server expects JSON
     headers: {
@@ -24,7 +26,7 @@ export async function register(
   email: string,
   password: string
 ) {
-  const response = await fetch('/api/auth/register', {
+  const response = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -37,5 +39,5 @@ export async function register(
     throw new Error(errorData.error || 'Failed to register');
   }
 
-  return response.json(); // Expected to return { token: string }
+  return response.json(); // Expected to return { message: string }
 }
