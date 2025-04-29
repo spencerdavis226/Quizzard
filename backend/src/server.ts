@@ -11,7 +11,7 @@ import leaderboardRoutes from './routes/leaderboard';
 
 // Create an Express application
 const app = express();
-const port = config.port;
+const port = parseInt(config.port as string, 10);
 
 // Middleware
 app.use(cors());
@@ -33,8 +33,8 @@ app.get('/', (req, res) => {
 
 // Binds and listens for connections on the specified host and port
 if (require.main === module) {
-  app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
   });
 }
 
