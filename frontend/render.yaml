@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: quizzard-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
