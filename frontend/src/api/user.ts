@@ -1,12 +1,13 @@
 // Simple API for updating profile and password
 import { getToken } from '../utils/token';
+import { API_URL } from '../config';
 
 export async function updateProfile(data: {
   username?: string;
   email?: string;
 }) {
   const token = getToken();
-  const response = await fetch('/api/user/me', {
+  const response = await fetch(`${API_URL}/user/me`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -26,7 +27,7 @@ export async function changePassword(
   newPassword: string
 ) {
   const token = getToken();
-  const response = await fetch('/api/user/change-password', {
+  const response = await fetch(`${API_URL}/user/change-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -43,7 +44,7 @@ export async function changePassword(
 
 export async function deleteAccount() {
   const token = getToken();
-  const response = await fetch('/api/user/me', {
+  const response = await fetch(`${API_URL}/user/me`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -58,7 +59,7 @@ export async function deleteAccount() {
 
 export async function getFriends() {
   const token = getToken();
-  const response = await fetch('/api/user/friends', {
+  const response = await fetch(`${API_URL}/user/friends`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) {
@@ -70,7 +71,7 @@ export async function getFriends() {
 
 export async function addFriend(username: string) {
   const token = getToken();
-  const response = await fetch('/api/user/friends', {
+  const response = await fetch(`${API_URL}/user/friends`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -87,7 +88,7 @@ export async function addFriend(username: string) {
 
 export async function removeFriend(username: string) {
   const token = getToken();
-  const response = await fetch('/api/user/friends', {
+  const response = await fetch(`${API_URL}/user/friends`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -109,7 +110,7 @@ export async function getGlobalLeaderboard(
 ) {
   const token = getToken();
   const response = await fetch(
-    `/api/leaderboard/global?sortBy=${sortBy}&sortOrder=desc&page=${page}&limit=${limit}`,
+    `${API_URL}/leaderboard/global?sortBy=${sortBy}&sortOrder=desc&page=${page}&limit=${limit}`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }
@@ -128,7 +129,7 @@ export async function getFriendLeaderboard(
 ) {
   const token = getToken();
   const response = await fetch(
-    `/api/leaderboard/friends?sortBy=${sortBy}&sortOrder=desc&page=${page}&limit=${limit}`,
+    `${API_URL}/leaderboard/friends?sortBy=${sortBy}&sortOrder=desc&page=${page}&limit=${limit}`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }
